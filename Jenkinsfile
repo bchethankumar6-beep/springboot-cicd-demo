@@ -32,6 +32,23 @@ pipeline {
                 bat "\"${DOCKER}\" image inspect ${IMAGE_NAME}:${BUILD_NUMBER}"
             }
         }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKERHUB_USER',
+                    passwordVariable: 'DOCKERHUB_TOKEN'
+                )]) {
+                    bat '''
+                        echo %DOCKERHUB_TOKEN% | "%DOCKER%" login -u "%DOCKERHUB_USER%" --password-stdin
+                        "%DOCKER%" tag "%IMAGE_NAME%:%BUILD_NUMBER%" "%DOCKERHUB_USER%/%IMAGE_NAME%:%BUILD_NUMBER%"
+                        "%DOCKER%" push "%DOCKERHUB_USER%/%IMAGE_NAME%:%BUILD_NUMBER%"
+                        "%DOCKER%" logout
+                    '''
+                }
+            }
+        }
     }
 
     post {
@@ -43,3 +60,4 @@ pipeline {
         }
     }
 }
+
