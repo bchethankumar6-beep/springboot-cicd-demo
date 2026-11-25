@@ -5,6 +5,8 @@ pipeline {
     environment {
         MAVEN = 'C:\\Program Files\\Apache\\apache-maven-3.10.1\\bin\\mvn.cmd'
         DOCKER = 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\docker.exe'
+        KUBECTL = 'C:\\Users\\ADMIN\\AppData\\Local\\Programs\\DockerDesktop\\resources\\bin\\kubectl.exe'
+        KUBECONFIG = 'C:\\Windows\\System32\\config\\systemprofile\\.kube\\config'
         IMAGE_NAME = 'springboot-cicd-demo'
     }
 
@@ -49,15 +51,34 @@ pipeline {
                 }
             }
         }
+
+        stage('Deploy to Kubernetes') {
+            steps {
+                withCredentials([usernamePassword(
+                    credentialsId: 'dockerhub-creds',
+                    usernameVariable: 'DOCKERHUB_USER',
+                    passwordVariable: 'DOCKERHUB_TOKEN'
+                )]) {
+                    bat '''
+                        "%KUBECTL%" set image deployment/springboot-demo springboot-cicd-demo="%DOCKERHUB_USER%/%IMAGE_NAME%:%BUILD_NUMBER%" --kubeconfig="%KUBECONFIG%"
+
+                        "%KUBECTL%" rollout status deployment/springboot-demo --timeout=180s --kubeconfig="%KUBECONFIG%"
+
+                        "%KUBECTL%" get deployments --kubeconfig="%KUBECONFIG%"
+
+                        "%KUBECTL%" get pods --kubeconfig="%KUBECONFIG%"
+                    '''
+                }
+            }
+        }
     }
 
     post {
         success {
-            echo 'CI Pipeline completed successfully!'
+            echo 'CI/CD Pipeline completed successfully!'
         }
         failure {
-            echo 'CI Pipeline failed. Check the console output.'
+            echo 'CI/CD Pipeline failed. Check the console output.'
         }
     }
 }
-
