@@ -72,8 +72,9 @@ pipeline {
             "%KUBECTL%" get pods --kubeconfig="%KUBECONFIG%"
             if errorlevel 1 exit /b 1
         '''
+           }
     }
-}
+    }
 
     post {
         success {
