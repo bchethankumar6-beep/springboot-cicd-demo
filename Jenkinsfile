@@ -42,7 +42,7 @@ pipeline {
             variable: 'DOCKERHUB_TOKEN'
         )]) {
             bat '''
-                echo %DOCKERHUB_TOKEN% | "%DOCKER%" login -u "chethan123444" --password-stdin
+                powershell.exe -NoProfile -NonInteractive -Command "$token = $env:DOCKERHUB_TOKEN.Trim(); $token | & $env:DOCKER login -u 'chethan123444' --password-stdin; if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }"
                 if errorlevel 1 exit /b 1
 
                 "%DOCKER%" tag "%IMAGE_NAME%:%BUILD_NUMBER%" "chethan123444/%IMAGE_NAME%:%BUILD_NUMBER%"
