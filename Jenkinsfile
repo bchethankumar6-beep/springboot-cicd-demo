@@ -35,53 +35,45 @@ pipeline {
             }
         }
 
-        stage('Push to Docker Hub') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds-v2',
-                    usernameVariable: 'DOCKERHUB_USER',
-                    passwordVariable: 'DOCKERHUB_TOKEN'
-                )]) {
-                    bat '''
-                        echo %DOCKERHUB_TOKEN% | "%DOCKER%" login -u "%DOCKERHUB_USER%" --password-stdin
-                        if errorlevel 1 exit /b 1
+       stage('Push to Docker Hub') {
+    steps {
+        withCredentials([string(
+            credentialsId: 'dockerhub-token-secret',
+            variable: 'DOCKERHUB_TOKEN'
+        )]) {
+            bat '''
+                echo %DOCKERHUB_TOKEN% | "%DOCKER%" login -u "chethan123444" --password-stdin
+                if errorlevel 1 exit /b 1
 
-                        "%DOCKER%" tag "%IMAGE_NAME%:%BUILD_NUMBER%" "%DOCKERHUB_USER%/%IMAGE_NAME%:%BUILD_NUMBER%"
-                        if errorlevel 1 exit /b 1
+                "%DOCKER%" tag "%IMAGE_NAME%:%BUILD_NUMBER%" "chethan123444/%IMAGE_NAME%:%BUILD_NUMBER%"
+                if errorlevel 1 exit /b 1
 
-                        "%DOCKER%" push "%DOCKERHUB_USER%/%IMAGE_NAME%:%BUILD_NUMBER%"
-                        if errorlevel 1 exit /b 1
+                "%DOCKER%" push "chethan123444/%IMAGE_NAME%:%BUILD_NUMBER%"
+                if errorlevel 1 exit /b 1
 
-                        "%DOCKER%" logout
-                    '''
-                }
-            }
-        }
-
-        stage('Deploy to Kubernetes') {
-            steps {
-                withCredentials([usernamePassword(
-                    credentialsId: 'dockerhub-creds-v2',
-                    usernameVariable: 'DOCKERHUB_USER',
-                    passwordVariable: 'DOCKERHUB_TOKEN'
-                )]) {
-                    bat '''
-                        "%KUBECTL%" set image deployment/springboot-demo springboot-cicd-demo="%DOCKERHUB_USER%/%IMAGE_NAME%:%BUILD_NUMBER%" --kubeconfig="%KUBECONFIG%"
-                        if errorlevel 1 exit /b 1
-
-                        "%KUBECTL%" rollout status deployment/springboot-demo --timeout=180s --kubeconfig="%KUBECONFIG%"
-                        if errorlevel 1 exit /b 1
-
-                        "%KUBECTL%" get deployments --kubeconfig="%KUBECONFIG%"
-                        if errorlevel 1 exit /b 1
-
-                        "%KUBECTL%" get pods --kubeconfig="%KUBECONFIG%"
-                        if errorlevel 1 exit /b 1
-                    '''
-                }
-            }
+                "%DOCKER%" logout
+            '''
         }
     }
+}
+
+       stage('Deploy to Kubernetes') {
+    steps {
+        bat '''
+            "%KUBECTL%" set image deployment/springboot-demo springboot-cicd-demo="chethan123444/%IMAGE_NAME%:%BUILD_NUMBER%" --kubeconfig="%KUBECONFIG%"
+            if errorlevel 1 exit /b 1
+
+            "%KUBECTL%" rollout status deployment/springboot-demo --timeout=180s --kubeconfig="%KUBECONFIG%"
+            if errorlevel 1 exit /b 1
+
+            "%KUBECTL%" get deployments --kubeconfig="%KUBECONFIG%"
+            if errorlevel 1 exit /b 1
+
+            "%KUBECTL%" get pods --kubeconfig="%KUBECONFIG%"
+            if errorlevel 1 exit /b 1
+        '''
+    }
+}
 
     post {
         success {
